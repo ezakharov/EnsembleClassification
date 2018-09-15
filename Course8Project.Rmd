@@ -1,0 +1,184 @@
+---
+title: "Course8Project"
+author: "Egor Zakharov"
+date: '8 Sept 2018'
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+## Intro
+
+In this project data from accelerometers on the belt, forearm, arm, and dumbell of 6 participants is analyzed. Participants were asked to perform barbell lifts correctly and incorrectly in 5 different ways. Different classification engines were applied. Ensemble of several classifiers was created to classify data into 5 different classes.
+
+## Load Data
+```{r dataload, results="hide", message=FALSE, warning=FALSE, cache = TRUE}
+wd <- "C:\\Users\\Ult\\Documents\\R\\course8progrAssignment"
+setwd(wd)
+source <- read.csv("pml-training.csv")
+```
+
+## Load Libraries
+```{r libload, results="hide", message=FALSE, warning=FALSE}
+library(caret)
+library(ISLR)
+library(ada)
+library(kernlab)
+library(e1071)
+library(gbm)
+library(plyr)
+library(naivebayes)
+library(hda)
+library(randomForest)
+library(LiblineaR)
+library(xgboost)
+```
+
+## Exclude unneeded columns
+
+It makes no sense to include some columns like time as predictors. Also it makes no sense to include columns with no variation in test set. Lets exclude unneeded columns.
+```{r}
+d1 <- source[ , c(seq(-7,-1),seq(-36,-12),seq(-59,-50),seq(-83,-69),seq(-101,-87),seq(-112,-103),seq(-139,-125),seq(-150,-141))]
+#summary(d1)
+```
+
+Lets also exclude highly correlated (>=0.9) predictors
+```{r}
+M <- abs(cor(d1[ , -53]))
+diag(M) <- 0
+which(M >= 0.9, arr.ind=T)
+d2 <- d1[ ,c(-4,-8,-9,-10,-19,-33,-46)]
+```
+
+## Build training, testing and validation sets
+```{r}
+set.seed(123)
+
+inBuild <- createDataPartition(y=d2$classe, p=0.7, list=FALSE)
+validation <- d2[-inBuild , ]
+buildData <- d2[inBuild , ]
+inTrain <- createDataPartition(y=buildData$classe, p=0.7, list=FALSE)
+training <- buildData[inTrain , ]
+testing <- buildData[-inTrain , ]
+dim(training)
+dim(testing)
+dim(validation)
+```
+
+# Train Models
+
+## 1. Random Forest on 15 primary components of data.
+```{r, cache = TRUE, message = FALSE, warning = FALSE}
+# This is code for training. Commented to save time. Uncomment to run.
+#mod1 <- train(classe ~ ., method="rf", preProcess="pca", pcaComp = 15, data=training)
+#saveRDS(mod1, file = paste(wd, "\\models2\\1-rf.rdd", sep=""))
+```
+
+## 2. Gradient Boosing Tree on 15 primary components of data.
+```{r, cache = TRUE, message = FALSE, warning = FALSE}
+# This is code for training. Commented to save time. Uncomment to run.
+#mod2 <- train(classe ~ ., method="xgbTree", preProcess="pca", pcaComp = 15, data=training)
+#saveRDS(mod2, file = paste(wd, "\\models2\\2-xgbTree.rdd", sep=""))
+```
+
+## 3. Discriminant Analysis on 15 primary components of data.
+```{r, cache = TRUE, message = FALSE, warning = FALSE}
+# This is code for training. Commented to save time. Uncomment to run.
+#mod3 <- train(classe ~ ., method="hda", preProcess="pca", pcaComp = 15, data=training)
+#saveRDS(mod3, file = paste(wd, "\\models2\\3-hda.rdd", sep=""))
+```
+
+## 4. Naive Bayes on 15 primary components of data.
+```{r, cache = TRUE, message = FALSE, warning = FALSE}
+# This is code for training. Commented to save time. Uncomment to run.
+#mod4 <- train(classe ~ ., method="naive_bayes", preProcess="pca", pcaComp = 15, data=training)
+#saveRDS(mod4, file = paste(wd, "\\models2\\4-naive_bayes.rdd", sep=""))
+```
+
+## 5. Support Vector Machine on 15 primary components of data.
+```{r, cache = TRUE, message = FALSE, warning = FALSE}
+# This is code for training. Commented to save time. Uncomment to run.
+#mod5 <- train(classe ~ ., method="svmLinear", preProcess=c("center","scale","pca"), tuneLength = 10, pcaComp = 15, data=training)
+#saveRDS(mod5, file = paste(wd, "\\models2\\5-svmLinear.rdd", sep=""))
+```
+
+## 6. GBM on data.
+```{r, cache = TRUE, message = FALSE, warning = FALSE}
+# This is code for training. Commented to save time. Uncomment to run.
+#mod6 <- train(classe ~ ., method="gbm", data=training)
+#saveRDS(mod6, file = paste(wd, "\\models2\\6-gbm.rdd", sep=""))
+```
+
+# Test Models
+
+Loading from previously saved RDSs is used for speedup only.
+
+## 1. Random Forest on 15 primary components of data.
+```{r, cache = TRUE, message = FALSE, warning = FALSE}
+mod1 <- readRDS(paste(wd, "\\models2\\1-rf.rdd", sep=""))
+predictions <- predict(mod1, newdata=testing)
+confusionMatrix(predictions, testing$classe)$overall['Accuracy'] 
+```
+
+## 2. Gradient Boosing Tree on 15 primary components of data.
+```{r, cache = TRUE, message = FALSE, warning = FALSE}
+mod2 <- readRDS(paste(wd, "\\models2\\2-xgbTree.rdd", sep=""))
+predictions <- predict(mod2, newdata=testing)
+confusionMatrix(predictions, testing$classe)$overall['Accuracy']
+```
+
+## 3. Discriminant Analysis on 15 primary components of data.
+```{r, cache = TRUE, message = FALSE, warning = FALSE}
+mod3 <- readRDS(paste(wd, "\\models2\\3-hda.rdd", sep=""))
+predictions <- predict(mod3, newdata=testing)
+confusionMatrix(predictions, testing$classe)$overall['Accuracy']
+```
+
+## 4. Naive Bayes on 15 primary components of data.
+```{r, cache = TRUE, message = FALSE, warning = FALSE}
+mod4 <- readRDS(paste(wd, "\\models2\\4-naive_bayes.rdd", sep=""))
+predictions <- predict(mod4, newdata=testing)
+confusionMatrix(predictions, testing$classe)$overall['Accuracy']
+```
+
+## 5. Support Vector Machine on 15 primary components of data.
+```{r, cache = TRUE, message = FALSE, warning = FALSE}
+mod5 <- readRDS(paste(wd, "\\models2\\5-svmLinear.rdd", sep=""))
+predictions <- predict(mod5, newdata=testing)
+confusionMatrix(predictions, testing$classe)$overall['Accuracy']
+```
+
+## 6. GBM on data.
+```{r, cache = TRUE, message = FALSE, warning = FALSE}
+mod6 <- readRDS(paste(wd, "\\models2\\6-gbm.rdd", sep=""))
+predictions <- predict(mod6, newdata=testing)
+confusionMatrix(predictions, testing$classe)$overall['Accuracy']
+```
+
+# Ensemble
+
+Lets take 3 best engines to make Classification Ensemble.
+
+```{r, cache = TRUE, message = FALSE, warning = FALSE}
+pred1 <- predict(mod1, newdata=testing)
+pred2 <- predict(mod2, newdata=testing)
+pred6 <- predict(mod6, newdata=testing)
+predDF <- data.frame(pred1, pred2, pred6, classe=testing$classe)
+combModFit <- train(classe ~ ., metod="gam", data=predDF) #Acuracy=0.9735383 on train
+combPred <- predict(combModFit, predDF)
+
+```
+
+# Prediction on validation dataset
+```{r, cache = TRUE, message = FALSE, warning = FALSE}
+pred1V <- predict(mod1, newdata=validation)
+pred2V <- predict(mod2, newdata=validation)
+pred6V <- predict(mod6, newdata=validation)
+predVDF <- data.frame(pred1V, pred2V, pred6V)
+names(predVDF) <- c("pred1","pred2","pred6")
+combPredV <- predict(combModFit, predVDF)
+confusionMatrix(combPredV, validation$classe)$overall['Accuracy']
+```
+
+Expected quality on real data is 0.9696
